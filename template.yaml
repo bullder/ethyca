@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  tic-tac-toe-api
+  
+  Serverless Tic-Tac-Toe API
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+    Runtime: python3.12
+  Api:
+    EndpointConfiguration: REGIONAL
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: tic-tac-toe.garifull.in
+    Description: Custom domain name for the UI
+  HostedZoneId:
+    Type: String
+    Description: Route53 Hosted Zone ID for the domain (e.g. Z0123456789ABCDEF)
+
+
+Resources:
+  TicTacToeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: app.app.app
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref GamesTable
+
+      Events:
+        CreateGame:
+          Type: Api
+          Properties:
+            Path: /api/games
+            Method: post
+        ListGames:
+          Type: Api
+          Properties:
+            Path: /api/games
+            Method: get
+        GetGame:
+          Type: Api
+          Properties:
+            Path: /api/games/{game_id}
+            Method: get
+
+        MakeMove:
+          Type: Api
+          Properties:
+            Path: /api/games/{game_id}/move
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GamesTable
+        - Version: '2012-10-17' 
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Resource: !Sub "arn:aws:s3:::${TicTacToeWebBucket}/*"
+
+
+
+  GamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+
+  TicTacToeWebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  TicTacToeWebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TicTacToeWebBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub "${TicTacToeWebBucket.Arn}/*"
+
+  # --- UI Custom Domain ---
+  TicTacToeCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+
+  TicTacToeDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - !Ref DomainName
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+          - Id: S3Origin
+            DomainName: !Select [2, !Split ["/", !GetAtt TicTacToeWebBucket.WebsiteURL]]
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+          - Id: ApiOrigin
+            DomainName: !Sub "${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com"
+            OriginPath: /Prod
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        CacheBehaviors:
+          - PathPattern: /api/*
+            TargetOriginId: ApiOrigin
+            ViewerProtocolPolicy: https-only
+            AllowedMethods: [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            ForwardedValues:
+              QueryString: true
+              Cookies:
+                Forward: all
+              Headers:
+                - Authorization
+                - X-Api-Key
+            DefaultTTL: 0
+            MinTTL: 0
+            MaxTTL: 0
+        ViewerCertificate:
+          AcmCertificateArn: !Ref TicTacToeCertificate
+          SslSupportMethod: sni-only
+
+  TicTacToeDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2 # CloudFront's fixed Hosted Zone ID
+        DNSName: !GetAtt TicTacToeDistribution.DomainName
+
+Outputs:
+  TicTacToeApi:
+    Description: "API Gateway endpoint URL for Prod stage for Tic-Tac-Toe API"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api/games/"
+  TicTacToeWebEndpoint:
+    Description: "S3 Website URL for the Static UI"
+    Value: !GetAtt TicTacToeWebBucket.WebsiteURL
+  TicTacToeCustomDomain:
+    Description: "Custom Domain URL"
+    Value: !Sub "https://${DomainName}/"

@@ -1,0 +1,35 @@
+[project]
+name = "tic-tac-toe-api"
+version = "0.1.0"
+description = "AWS serverless Tic-Tac-Toe API"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "botocore[crt]>=1.42.18",
+    "boto3>=1.42.18",
+    "chalice>=1.31.0",
+    "itsdangerous>=2.2.0",
+    "pydantic>=2.12.5",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+    "ruff>=0.14.10",
+    "mypy>=1.19.1",
+]
+
+[tool.ruff.lint]
+ignore = ["E741", "F841"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-v -s"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+ignore_missing_imports = true

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.3/dist/cdn.min.js"
+        integrity="sha384-4E5IZutrbnm0GBnBqEA2tgLsTg6ublElJlpE9qQQNL0WrY9g4GPahFFyJYwnDet2+"
+        crossorigin="anonymous"></script>
+    <style>
+        :root {
+            --bg-color: #0f0f13;
+            --text-color: #e0e0e0;
+            --primary-color: #00f3ff;
+            --secondary-color: #ff0055;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--primary-color);
+            margin-bottom: 2rem;
+        }
+
+        .container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            background: var(--primary-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        /* Board Styling */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 10px;
+            margin-top: 20px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .cell:hover:not(.taken) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .cell.X {
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .cell.O {
+            color: var(--secondary-color);
+            text-shadow: 0 0 10px var(--secondary-color);
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            min-height: 1.5em;
+        }
+
+        .winner {
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from {
+                opacity: 0.8;
+            }
+
+            to {
+                opacity: 1;
+                text-shadow: 0 0 20px #00ff88;
+            }
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" x-data="ticTacToe()" x-init="initGame()">
+        <h1>TIC TAC TOE</h1>
+
+        <!-- Start Screen -->
+        <template x-if="!game">
+            <div>
+                <button class="btn" @click="createGame()">
+                    Start New Game
+                </button>
+
+                <div
+                    style="margin-top: 3rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+                    <h3 style="border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">Active Games</h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <template x-for="g in games" :key="g.id">
+                            <div
+                                style="display: flex; justify-content: space-between; padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center;">
+                                <div>
+                                    <span x-text="g.id.substring(0,8) + '...'"
+                                        style="color: var(--primary-color);"></span>
+                                    <span x-text="g.status"
+                                        style="font-size: 0.8rem; margin-left: 10px; opacity: 0.7;"></span>
+                                </div>
+                                <button
+                                    style="background: none; border: 1px solid var(--text-color); color: var(--text-color); padding: 2px 8px; cursor: pointer; border-radius: 4px; font-size: 0.8rem;"
+                                    @click="loadGame(g)">
+                                    View
+                                </button>
+                            </div>
+                        </template>
+                        <template x-if="games.length === 0">
+                            <div style="padding: 1rem; text-align: center; opacity: 0.5;">No active games</div>
+                        </template>
+                    </div>
+                    <button @click="fetchGames()"
+                        style="margin-top: 1rem; width: 100%; border: none; background: rgba(255,255,255,0.05); color: #aaa; cursor: pointer; padding: 5px;">
+                        Refresh List
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <!-- Game Screen -->
+        <template x-if="game">
+            <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;">
+                <div>
+                    <div class="status">
+                        <template x-if="game.status === 'IN_PROGRESS'">
+                            <span>Player <span
+                                    :style="`color: var(--${game.current_turn === 'X' ? 'primary' : 'secondary'}-color)`"
+                                    x-text="game.current_turn"></span>'s Turn</span>
+                        </template>
+                        <template x-if="game.status === 'DRAW'">
+                            <span style="color: #fff">It's a Draw!</span>
+                        </template>
+                        <template x-if="game.status !== 'IN_PROGRESS' && game.status !== 'DRAW'">
+                            <span class="winner">Player <span x-text="game.winner"></span> Wins!</span>
+                        </template>
+                    </div>
+
+                    <div class="board">
+                        <template x-for="(cell, index) in game.board" :key="index">
+                            <div class="cell" :class="{ 'taken': cell, 'X': cell === 'X', 'O': cell === 'O' }"
+                                @click="makeMove(index)" @keydown.enter.prevent="makeMove(index)"
+                                @keydown.space.prevent="makeMove(index)" tabindex="0" role="button"
+                                :aria-label="`Cell ${index + 1}: ${cell || 'empty'}`" x-text="cell">
+                            </div>
+                        </template>
+                    </div>
+
+                    <template x-if="game.status !== 'IN_PROGRESS'">
+                        <button class="btn" @click="createGame()">
+                            Play Again
+                        </button>
+                    </template>
+                    <div style="margin-top: 1rem;">
+                        <button @click="game = null; fetchGames()"
+                            style="background: none; border: none; color: #777; cursor: pointer; text-decoration: underline;">
+                            Back to Lobby
+                        </button>
+                    </div>
+                </div>
+
+                <!-- History Column -->
+                <div
+                    style="background: rgba(255,255,255,0.03); padding: 1rem; border-radius: 10px; min-width: 150px; max-height: 400px; overflow-y: auto;">
+                    <h3
+                        style="margin-top: 0; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; color: #aaa;">
+                        History</h3>
+                    <template x-if="game.history && game.history.length > 0">
+                        <div style="text-align: left; font-size: 0.9rem; font-family: monospace;">
+                            <template x-for="(move, i) in game.history" :key="i">
+                                <div style="padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                    <span style="color: #666;" x-text="i + 1 + '.'"></span>
+                                    <span :style="`color: var(--${i % 2 === 0 ? 'primary' : 'secondary'}-color)`"
+                                        x-text="i % 2 === 0 ? 'X' : 'O'"></span>
+                                    <span style="color: #888; margin-left: 5px;"
+                                        x-text="`(${move.x}, ${move.y})`"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template x-if="!game.history || game.history.length === 0">
+                        <div style="color: #555; font-style: italic;">No moves yet</div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        <div style="color: red; margin-top: 20px;" x-text="error" x-show="error" x-cloak></div>
+    </div>
+
+    <script>
+        function ticTacToe() {
+            return {
+                games: [],
+                game: null,
+                error: null,
+
+                initGame() {
+                    console.log("Initializing game v2...");
+                    this.fetchGames();
+                },
+
+                async fetchGames() {
+                    try {
+                        const res = await fetch('/api/games');
+                        if (res.ok) {
+                            this.games = await res.json();
+                            this.error = null;
+                        } else {
+                            throw new Error('Failed to fetch games');
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch games", e);
+                        this.error = `Failed to load games: ${e.message || e}`;
+                    }
+                },
+
+                async loadGame(gameSummary) {
+                    console.log("Loading game:", gameSummary.id);
+                    try {
+                        const res = await fetch(`/api/games/${gameSummary.id}`);
+                        if (!res.ok) throw new Error('Failed to load game details');
+                        this.game = await res.json();
+                    } catch (e) {
+                        console.error("Error loading game:", e);
+                        this.error = "Failed to load game details";
+                    }
+                },
+
+                async createGame() {
+                    console.log("Creating new game...");
+                    try {
+                        this.error = null;
+                        const res = await fetch(`/api/games`, {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        if (!res.ok) throw new Error('Failed to create game');
+                        this.game = await res.json();
+                        console.log("Game created:", this.game);
+                        this.fetchGames();
+                    } catch (e) {
+                        console.error("Error creating game:", e);
+                        this.error = e.message;
+                    }
+                },
+
+                async makeMove(index) {
+                    if (!this.game || this.game.status !== 'IN_PROGRESS' || this.game.board[index]) return;
+                    const x = index % 3;
+                    const y = Math.floor(index / 3);
+
+                    console.log(`Making move at index ${index} (x=${x}, y=${y})...`);
+
+                    try {
+                        this.error = null;
+                        const res = await fetch(`/api/games/${this.game.id}/move`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ x, y }),
+                            credentials: 'include'
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json();
+                            console.error("Move failed:", err);
+                            throw new Error(err.detail || 'Invalid move');
+                        }
+
+                        this.game = await res.json();
+                        console.log("Move successful. New state:", this.game);
+                        this.fetchGames();
+                    } catch (e) {
+                        console.error("Error making move:", e);
+                        this.error = e.message;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

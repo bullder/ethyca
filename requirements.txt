@@ -1,0 +1,5 @@
+chalice>=1.31.0
+itsdangerous>=2.2.0
+pydantic>=2.12.5
+boto3>=1.42.18
+botocore[crt]>=1.42.18
