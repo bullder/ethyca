@@ -19,3 +19,4 @@ class BaseResponse(abc.ABC):
             "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
         }
         headers.update(self.headers)
+        return headers

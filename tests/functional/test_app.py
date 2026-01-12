@@ -1,3 +1,7 @@
+import os
+import json
+os.environ['TABLE_NAME'] = 'test-table'
+
 import unittest
 from unittest.mock import MagicMock, patch
 from chalice.test import Client
@@ -6,12 +10,21 @@ from app.models.game import Game
 
 class TestApp(unittest.TestCase):
     def setUp(self):
+        self.env_patcher = patch.dict('os.environ', {'TABLE_NAME': 'test-table'})
+        self.env_patcher.start()
+        
         self.mock_repo = MagicMock()
-        self.patcher = patch('app.app.game_service.repository', self.mock_repo)
-        self.patcher.start()
+        # Patch the repository class so when GameService is initialized, it uses our mock
+        self.repo_patcher = patch('app.app.DynamoDBGameRepository', return_value=self.mock_repo)
+        self.repo_patcher.start()
+        
+        # Reset the singleton to ensure fresh init
+        import app.app
+        app.app._game_service = None
 
     def tearDown(self):
-        self.patcher.stop()
+        self.repo_patcher.stop()
+        self.env_patcher.stop()
 
     def test_create_game(self):
         with Client(app) as client:
@@ -55,8 +68,12 @@ class TestApp(unittest.TestCase):
             self.mock_repo.get_game.return_value = game
             
             payload = {'x': 0, 'y': 0}
-            response = client.http.post(f'/api/games/{game.id}/move', body=payload)
+            headers = {'Content-Type': 'application/json'}
+            response = client.http.post(f'/api/games/{game.id}/move', body=json.dumps(payload), headers=headers)
             
+            if response.status_code != 200:
+                print(f"DEBUG: Status {response.status_code}, Body: {response.json_body}")
+
             self.assertEqual(response.status_code, 200)
             game_data = response.json_body
             board = game_data['board']
@@ -69,7 +86,8 @@ class TestApp(unittest.TestCase):
         with Client(app) as client:
             game = Game()
             self.mock_repo.get_game.return_value = game
-            response = client.http.post(f'/api/games/{game.id}/move', body={'x': 0})
+            headers = {'Content-Type': 'application/json'}
+            response = client.http.post(f'/api/games/{game.id}/move', body=json.dumps({'x': 0}), headers=headers)
             self.assertEqual(response.status_code, 400)
 
 if __name__ == '__main__':

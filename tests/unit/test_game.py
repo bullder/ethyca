@@ -43,13 +43,13 @@ class TestGame(unittest.TestCase):
         self.game.current_turn = Player.O
         move = Move(x=0, y=0)
         with self.assertRaises(InvalidTurnError):
-            self.game.validate_move(move, Player.X)
+            self.game._validate_move(move, Player.X)
 
     def test_position_occupied(self):
         self.game.board.cells[0] = Player.X
         move = Move(x=0, y=0)
         with self.assertRaises(PositionOccupiedError):
-            self.game.validate_move(move, Player.X)
+            self.game._validate_move(move, Player.X)
 
 if __name__ == '__main__':
     unittest.main()
