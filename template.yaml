@@ -9,7 +9,7 @@ Globals:
   Function:
     Timeout: 3
     MemorySize: 128
-    Runtime: python3.14
+    Runtime: python3.12
   Api:
     EndpointConfiguration: REGIONAL
 

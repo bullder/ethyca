@@ -37,7 +37,7 @@ class Game(BaseModel):
     def to_list_item(self) -> dict[str, str]:
         return {
             "id": self.id,
-            "status": self.status,
+            "status": self.status.value,
             "started_at": self.started_at
         }
 
@@ -74,17 +74,17 @@ class Game(BaseModel):
         if self.board.is_occupied(move.position):
             raise PositionOccupiedError(game_id=self.id, x=move.x, y=move.y)
 
-    def process_move(self, move: Move):
-        self._validate_move(move, self.current_turn)
-        self.board.cells[move.position] = self.current_turn
+    def process_move(self, move: Move, player: Player = Player.X):
+        self._validate_move(move, player)
+        self.board.cells[move.position] = player
         self.history.append(move)
         
         self._update()
         
         if self.status == GameStatus.IN_PROGRESS:
-             self.current_turn = self.get_next_player()
-             if self.is_computer_turn():
-                 self._make_computer_move()
+            self.current_turn = self.get_next_player()
+            if self.is_computer_turn():
+                self._make_computer_move()
 
     def get_next_player(self) -> Player:
         return Player.O if self.current_turn == Player.X else Player.X

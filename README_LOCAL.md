@@ -41,7 +41,7 @@ sam local start-api --env-vars env.json
 ```
 
 ### Using Chalice
-This runs the API on port 8000.
+This runs the API on port 3000.
 ```bash
 chalice local --port 3000
 ```

@@ -7,7 +7,9 @@ from app.models import (
     GameResponse,
     TicTacToeError
 )
-from chalice import Chalice, Response, NotFoundError as ChaliceNotFoundError, BadRequestError as ChaliceBadRequestError
+from chalice import Chalice, NotFoundError as ChaliceNotFoundError, BadRequestError as ChaliceBadRequestError
+
+from app.models.responses.exception_response import ExceptionResponse
 from app.models.responses.games_list_response import GamesListResponse
 from app.services import GameService, DynamoDBGameRepository
 
@@ -29,13 +31,13 @@ def create_game():
     game_service = get_game_service()
     game = game_service.create_game()
     app.log.info(f"Game created with ID: {game.id}")
-    return GameResponse().to_response(game, HTTPStatus.CREATED)
+    return GameResponse(game, HTTPStatus.CREATED).to_response()
 
 @app.route('/api/games', methods=['GET'], cors=True)
 def list_games():
     app.log.info("Listing games")
     game_service = get_game_service()
-    return GamesListResponse().to_response(games=game_service.list_games())
+    return GamesListResponse(games=game_service.list_games()).to_response()
 
 @app.route('/api/games/{game_id}', methods=['GET'], cors=True)
 def get_game(game_id):
@@ -45,7 +47,7 @@ def get_game(game_id):
     if not game:
         app.log.warning(f"Game not found: {game_id}")
         raise ChaliceNotFoundError(f"Game not found: {game_id}")
-    return GameResponse().to_response(game)
+    return GameResponse(game).to_response()
 
 @app.route('/api/games/{game_id}/move', methods=['POST'], cors=True)
 def make_move(game_id):
@@ -53,8 +55,8 @@ def make_move(game_id):
     request = app.current_request
     try:
         if not request.json_body:
-             app.log.error("Missing request body")
-             raise ChaliceBadRequestError("Missing request body")
+            app.log.error("Missing request body")
+            raise ChaliceBadRequestError("Missing request body")
         game_request = GameMove(game_id=game_id, move=Move(**request.json_body))
     except Exception as e:
         app.log.error(f"Invalid request: {e}")
@@ -64,11 +66,7 @@ def make_move(game_id):
         game_service = get_game_service()
         updated_game = game_service.make_move(game_request)
         app.log.info(f"Move successful for game: {game_id}")
-        return  GameResponse().to_response(updated_game)
+        return GameResponse(updated_game).to_response()
     except TicTacToeError as e:
         app.log.error(f"Game error: {e}")
-        return Response(
-            body={"detail": str(e)},
-            status_code=e.status_code,
-            headers={"Content-Type": "application/json"}
-        )
+        return ExceptionResponse(e).to_response()

@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic-Tac-Toe</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.3/dist/cdn.min.js"
+        integrity="sha384-4E5IZutrbnm0GBnBqEA2tgLsTg6ublElJlpE9qQQNL0WrY9g4GPahFFyJYwnDet2+"
+        crossorigin="anonymous"></script>
     <style>
         :root {
             --bg-color: #0f0f13;
@@ -195,7 +197,9 @@
                     <div class="board">
                         <template x-for="(cell, index) in game.board" :key="index">
                             <div class="cell" :class="{ 'taken': cell, 'X': cell === 'X', 'O': cell === 'O' }"
-                                @click="makeMove(index)" x-text="cell">
+                                @click="makeMove(index)" @keydown.enter.prevent="makeMove(index)"
+                                @keydown.space.prevent="makeMove(index)" tabindex="0" role="button"
+                                :aria-label="`Cell ${index + 1}: ${cell || 'empty'}`" x-text="cell">
                             </div>
                         </template>
                     </div>
@@ -259,9 +263,13 @@
                         const res = await fetch('/api/games');
                         if (res.ok) {
                             this.games = await res.json();
+                            this.error = null;
+                        } else {
+                            throw new Error('Failed to fetch games');
                         }
                     } catch (e) {
                         console.error("Failed to fetch games", e);
+                        this.error = `Failed to load games: ${e.message || e}`;
                     }
                 },
 

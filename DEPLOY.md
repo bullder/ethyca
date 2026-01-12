@@ -3,8 +3,8 @@
 ## Prerequisites
 1.  **AWS CLI**: Installed and configured with `aws configure`.
 2.  **AWS SAM CLI**: Installed.
-3.  **Python 3.14+**: Required for the runtime.
-4.  **Inuv**: For dependency management (`uv` CLI).
+3.  **Python 3.12+**: Required for the runtime.
+4.  **uv**: For dependency management (`uv` CLI).
 
 ## 1. Backend Deployment (API)
 

@@ -37,13 +37,15 @@ class DynamoDBGameRepository(GameRepository):
             item = response.get('Item')
             if not item:
                 return None
-            return Game(**item)
+            
+            try:
+                return Game(**item)
+            except Exception as e:
+                logger.error(f"Error parsing game data for game {game_id}: {e}")
+                return None
         except ClientError as e:
-            logger.error(f"Error fetching game from DynamoDB: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Error parsing game data: {e}")
-            return None
+            logger.error(f"ClientError fetching game {game_id}: {e.response['Error']['Code']} - {e.response['Error']['Message']}")
+            raise
 
     def list_games(self, limit: int = 100) -> List[Game]:
         try:
