@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "tic-tac-toe-stack"
+resolve_s3 = true
+s3_prefix = "tic-tac-toe-stack"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []
+parameter_overrides = "DomainName=\"tic-tac-toe.garifull.in\" HostedZoneId=\"Z20QADE7TIEJDD\""
+
+[default.global.parameters]
+region = "us-east-1"
